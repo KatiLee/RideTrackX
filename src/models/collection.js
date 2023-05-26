@@ -14,7 +14,7 @@ class Collection {
   // Read
   get(id) {
     if (id) {
-      return this.model.findOne({ where: { id: id } });
+      return this.model.findOne({ where: { id } });
     }
     else {
       return this.model.findAll({});
@@ -23,7 +23,7 @@ class Collection {
 
   // Update
   async update(id, data) {
-    let result = await this.model.findOne({ where: { id: id } });
+    let result = await this.model.findOne({ where: { id } });
     let updatedData = await result.update(data);
 
     return updatedData;
@@ -31,7 +31,9 @@ class Collection {
 
   // Delete
   delete(id) {
-    return this.model.destroy({ where: { id: id } });
+    return this.model.destroy({ where: { id } });
   }
 
 }
+
+module.exports = Collection;

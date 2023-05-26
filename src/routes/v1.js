@@ -15,12 +15,6 @@ router.param('model', (req, res, next) => {
   }
 });
 
-router.get('/:model', getAll);
-router.get('/:model', getOne);
-router.post('/:model', create);
-router.put('/:model', update);
-router.delete('/:model', deleteRecord);
-
 const getAll = async (req, res, next) => {
   try {
     let allRecords = await req.model.get();
@@ -68,3 +62,10 @@ const deleteRecord = async (req, res, next) => {
   res.status(200).json(deletedRecord);
 };
 
+router.get('/:model', getAll);
+router.get('/:model', getOne);
+router.post('/:model', create);
+router.put('/:model', update);
+router.delete('/:model', deleteRecord);
+
+module.exports = router;
