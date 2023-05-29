@@ -56,7 +56,7 @@ async function handleGetAll(req, res) {
     } catch (error) {
       res.status(500).json({ error: 'Internal server error' });
     }
-  } else if (req.params.model === 'reservation' !== 'parkGuest' ) {
+  } else if (req.params.model === 'reservation' && req.user.dataValues.role!== 'parkGuest' ) {
     try {
       allRecords = await reservation.findAll({
         include: [
