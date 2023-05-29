@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const SECRET = process.env.SECRET || 'secretstring';
 
 const userModel = (sequelize, DataTypes) => {
-  const model = sequelize.define('Users', {
+  const model = sequelize.define('users', {
     username: { type: DataTypes.STRING, allowNull: true, unique: true },
     password: { type: DataTypes.STRING, allowNull: true },
     heightGroup: { type: DataTypes.ENUM('Short', 'Medium', 'Tall'), allowNull: true },
@@ -25,7 +25,7 @@ const userModel = (sequelize, DataTypes) => {
       type: DataTypes.VIRTUAL,
       get() {
         const acl = {
-          parkGuest: ['read'],
+          parkGuest: ['read', 'reserve'],
           machineOperator: ['read', 'update'],
           parkManager: ['read', 'create', 'update', 'delete'],
           admin: ['read', 'create', 'update', 'delete'],

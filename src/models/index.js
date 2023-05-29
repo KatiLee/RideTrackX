@@ -13,6 +13,12 @@ const ride = rideModel(sequelize, DataTypes);
 const reservation = reservationModel(sequelize, DataTypes);
 const users = userModel(sequelize, DataTypes);
 
+users.belongsToMany(ride, {through: reservation});
+ride.belongsToMany(users, {through: reservation});
+
+reservation.belongsTo(users, { foreignKey: 'userId', as: 'user' });
+reservation.belongsTo(ride, { foreignKey: 'rideId', as: 'ride' });
+
 module.exports = {
   db: sequelize,
   ride: new Collection(ride),

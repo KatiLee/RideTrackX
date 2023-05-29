@@ -29,13 +29,14 @@ authRouter.post('/signin', basicAuth, (req, res, next) => {
   res.status(200).json(user);
 });
 
-authRouter.get('/users', bearerAuth, permissions('delete'), async (req, res, next) => {
+authRouter.get('/users', bearerAuth, permissions('update'), async (req, res, next) => {
   const userRecords = await users.findAll({});
   const list = userRecords.map(user => user.username);
   res.status(200).json(list);
 });
 
-authRouter.get('/secret', bearerAuth, async (req, res, next) => {
+
+authRouter.get('/secret', bearerAuth, permissions('update'), async (req, res, next) => {
   res.status(200).send('Welcome to the secret area');
 });
 

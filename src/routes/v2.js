@@ -4,11 +4,14 @@ const express = require('express');
 const dataModules = require('../models');
 const bearerAuth = require('../auth/middleware/bearer');
 const permissions = require('../auth/middleware/acl');
+const reservationModel = require('../models/reservation');
 
 const router = express.Router();
 
 router.param('model', (req, res, next) => {
   const modelName = req.params.model;
+  console.log('modelName>>>', modelName);
+
   if (dataModules[modelName]) {
     req.model = dataModules[modelName];
     next();
@@ -17,6 +20,8 @@ router.param('model', (req, res, next) => {
   }
 });
 
+
+router.get('/reservation', bearerAuth, permissions('read'), getReservation);
 router.get('/:model', bearerAuth, handleGetAll);
 router.get('/:model/:id', bearerAuth, handleGetOne);
 router.post('/:model', bearerAuth, permissions('create'), handleCreate);
@@ -25,6 +30,16 @@ router.delete('/:model/:id', bearerAuth, permissions('delete'), handleDelete);
 
 async function handleGetAll(req, res) {
   let allRecords = await req.model.get();
+  res.status(200).json(allRecords);
+}
+
+async function getReservation(req, res) {
+  let allRecords = await reservationModel.get({
+    include:[
+      { model: dataModules.users, as: 'user', attributes: ['name'] },
+      { model: dataModules.ride, as: 'ride', attributes: ['name'] },
+    ],
+  });
   res.status(200).json(allRecords);
 }
 
@@ -54,8 +69,9 @@ async function handleCreate(req, res) {
 
 async function handleDelete(req, res) {
   let id = req.params.id;
-  let deletedRecord = await req.model.delete(id);
-  res.status(200).json(deletedRecord);
+  await req.model.delete(id);
+  let updatedRecords = await req.model.get();
+  res.status(200).json(updatedRecords);
 }
 
 module.exports = router;
