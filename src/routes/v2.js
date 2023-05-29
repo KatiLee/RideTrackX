@@ -20,7 +20,6 @@ router.param('model', (req, res, next) => {
 });
 
 router.get('/:model', bearerAuth, handleGetAll);
-// router.get('/:model', bearerAuth, permissions('update'), allReservations);
 router.get('/:model/:id', bearerAuth, handleGetOne);
 router.post('/:model', bearerAuth, permissions('create'), handleCreate);
 router.put('/:model/:id', bearerAuth, permissions('update'), handleUpdate);
@@ -38,16 +37,30 @@ async function handleCreate(req, res, next) {
 
 async function handleGetAll(req, res) {
 
+  console.log('req.user.dataValues>>>', req.user.dataValues);
+
+
   let allRecords;
 
-  if (req.params.model === 'reservation'){
+  if (req.params.model === 'reservation' && req.user.dataValues.role === 'parkGuest'){
     let id = req.user.dataValues.id;
 
     try {
       allRecords = await reservation.findAll({
         where: {userId: id},
         include: [
-          // {model: users, as: 'user', attributes: ['username']},
+          {model: rides, as: 'ride', attributes: ['name']},
+        ],
+      });
+
+    } catch (error) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  } else if (req.params.model === 'reservation' !== 'parkGuest' ) {
+    try {
+      allRecords = await reservation.findAll({
+        include: [
+          {model: users, as: 'user', attributes: ['username']},
           {model: rides, as: 'ride', attributes: ['name']},
         ],
       });
@@ -59,26 +72,6 @@ async function handleGetAll(req, res) {
     allRecords = await req.model.get();
   }
 
-  res.status(200).json(allRecords);
-}
-
-async function allReservations(req, res) {
-
-  let allRecords;
-
-  if (req.params.model === 'reservation'){
-    try {
-      allRecords = await reservation.findAll({
-        include: [
-          // {model: users, as: 'user', attributes: ['username']},
-          {model: rides, as: 'ride', attributes: ['name']},
-        ],
-      });
-
-    } catch (error) {
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  }
   res.status(200).json(allRecords);
 }
 
