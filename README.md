@@ -50,5 +50,5 @@ This project solves address the challenges faced by theme park guests trying to 
 - Tests coming soon
 
 #### UML
-#
+
 ![UML-for-lab-09](uml-diagram.png)
