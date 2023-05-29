@@ -35,7 +35,6 @@ authRouter.get('/users', bearerAuth, permissions('update'), async (req, res, nex
   res.status(200).json(list);
 });
 
-
 authRouter.get('/secret', bearerAuth, permissions('update'), async (req, res, next) => {
   res.status(200).send('Welcome to the secret area');
 });
