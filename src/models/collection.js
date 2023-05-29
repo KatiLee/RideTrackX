@@ -31,7 +31,7 @@ class Collection {
 
   // Delete
   delete(id) {
-    return this.model.destroy({ where: { id } });
+    return this.model.destroy({ where: { id: id } });
   }
 
 }

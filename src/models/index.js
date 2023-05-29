@@ -9,19 +9,21 @@ const Collection = require('./collection');
 const DB_URL = process.env.DATABASE_URL || 'sqlite:memory:';
 
 const sequelize = new Sequelize(DB_URL);
-const ride = rideModel(sequelize, DataTypes);
+const rides = rideModel(sequelize, DataTypes);
 const reservation = reservationModel(sequelize, DataTypes);
 const users = userModel(sequelize, DataTypes);
 
-users.belongsToMany(ride, {through: reservation});
-ride.belongsToMany(users, {through: reservation});
+users.belongsToMany(rides, {through: reservation});
+rides.belongsToMany(users, {through: reservation});
 
-reservation.belongsTo(users, { foreignKey: 'userId', as: 'user' });
-reservation.belongsTo(ride, { foreignKey: 'rideId', as: 'ride' });
+reservation.belongsTo(users, { foreignKey: 'userId', as: 'user' ,attributes: ['username'] });
+reservation.belongsTo(rides, { foreignKey: 'rideId', as: 'ride', attributes: ['name'] });
 
 module.exports = {
   db: sequelize,
-  ride: new Collection(ride),
-  reservation: new Collection(reservation),
+  ride: new Collection(rides),
+  reservations: new Collection(reservation),
+  reservation,
+  rides,
   users,
 };

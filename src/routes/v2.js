@@ -2,15 +2,15 @@
 
 const express = require('express');
 const dataModules = require('../models');
+const {reservation, rides, users} = require('../models');
 const bearerAuth = require('../auth/middleware/bearer');
 const permissions = require('../auth/middleware/acl');
-const reservationModel = require('../models/reservation');
+// const reservationModel = require('../models/reservation');
 
 const router = express.Router();
 
 router.param('model', (req, res, next) => {
   const modelName = req.params.model;
-  console.log('modelName>>>', modelName);
 
   if (dataModules[modelName]) {
     req.model = dataModules[modelName];
@@ -20,26 +20,45 @@ router.param('model', (req, res, next) => {
   }
 });
 
-
-router.get('/reservation', bearerAuth, permissions('read'), getReservation);
 router.get('/:model', bearerAuth, handleGetAll);
 router.get('/:model/:id', bearerAuth, handleGetOne);
 router.post('/:model', bearerAuth, permissions('create'), handleCreate);
 router.put('/:model/:id', bearerAuth, permissions('update'), handleUpdate);
 router.delete('/:model/:id', bearerAuth, permissions('delete'), handleDelete);
 
-async function handleGetAll(req, res) {
-  let allRecords = await req.model.get();
-  res.status(200).json(allRecords);
+async function handleCreate(req, res, next) {
+  try {
+    let obj = req.body;
+    let newRecord = await req.model.create(obj);
+    res.status(201).json(newRecord);
+  } catch (error) {
+    next( error.message || error);
+  }
 }
 
-async function getReservation(req, res) {
-  let allRecords = await reservationModel.get({
-    include:[
-      { model: dataModules.users, as: 'user', attributes: ['name'] },
-      { model: dataModules.ride, as: 'ride', attributes: ['name'] },
-    ],
-  });
+async function handleGetAll(req, res) {
+
+  let allRecords;
+
+  if (req.params.model === 'reservation'){
+    let id = req.user.dataValues.id;
+
+    try {
+      allRecords = await reservation.findAll({
+        where: {userId: id},
+        include: [
+          // {model: users, as: 'user', attributes: ['username']},
+          {model: rides, as: 'ride', attributes: ['name']},
+        ],
+      });
+
+    } catch (error) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  } else {
+    allRecords = await req.model.get();
+  }
+
   res.status(200).json(allRecords);
 }
 
@@ -56,22 +75,37 @@ async function handleGetOne(req, res, next) {
 async function handleUpdate(req, res) {
   const id = req.params.id;
   const obj = req.body;
-  let updatedRecord = await req.model.update(id, obj);
+
+  let updatedRecord;
+
+  if (req.params.model === 'reservation'){
+    let record = await reservation.findOne({where: {id: id}});
+    updatedRecord = await record.update(obj);
+  } else {
+    updatedRecord = await req.model.update(id, obj);
+  }
+
   res.status(200).json(updatedRecord);
 }
 
-async function handleCreate(req, res) {
-  let obj = req.body;
-  let newRecord = await req.model.create(obj);
-  res.status(201).json(newRecord);
-}
-
-
 async function handleDelete(req, res) {
+  console.log(req.params);
   let id = req.params.id;
-  await req.model.delete(id);
-  let updatedRecords = await req.model.get();
-  res.status(200).json(updatedRecords);
+
+  if (req.params.model === 'reservation'){
+    await reservation.destroy({where: {id: id}});
+    let updatedRecords =  await reservation.findAll({
+      include: [
+        {model: users, as: 'user', attributes: ['username']},
+        {model: rides, as: 'ride', attributes: ['name']},
+      ],
+    });
+    res.status(200).json(updatedRecords);
+  } else{
+    await req.model.delete(id);
+    let updatedRecords = await req.model.get();
+    res.status(200).json(updatedRecords);
+  }
 }
 
 module.exports = router;
