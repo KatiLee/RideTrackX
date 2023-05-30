@@ -2,7 +2,6 @@
 
 const express = require('express');
 const dataModules = require('../models');
-const {reservation, rides, users} = require('../models');
 const bearerAuth = require('../auth/middleware/bearer');
 const permissions = require('../auth/middleware/acl');
 
@@ -19,61 +18,96 @@ router.param('model', (req, res, next) => {
   }
 });
 
+let reservation = dataModules.reservation;
+
 router.get('/:model', bearerAuth, handleGetAll);
 router.get('/:model/:id', bearerAuth, handleGetOne);
-router.post('/:model', bearerAuth, permissions('create'), handleCreate);
+router.post('/:model', bearerAuth, handleCreate);
 router.put('/:model/:id', bearerAuth, permissions('update'), handleUpdate);
 router.delete('/:model/:id', bearerAuth, permissions('delete'), handleDelete);
 
 async function handleCreate(req, res, next) {
-  try {
-    let obj = req.body;
-    let newRecord = await req.model.create(obj);
+  if (req.user.dataValues.role === 'machineOperator' && (req.params.model === 'ride' || req.params.model === 'reservation')) {
+    res.status(401).send(`Unauthorized Access to "${req.params.model}". Please see Park Manager for assitance.`);
+    next();
+  }
+
+  if (req.user.dataValues.role === 'parkGuest' && (req.params.model === 'ride')) {
+    res.status(401).send(`You are signed in as a Park Guest. You are not authorized to create new "${req.params.model}" record.`);
+    next();
+  }
+
+  if (req.user.dataValues.role === 'parkGuest' && req.params.model === 'reservation') {
+    let obj = {
+      userId: req.user.dataValues.id,
+      rideId: req.body.rideId,
+    };
+    let newRecord = await reservation.create(obj);
     res.status(201).json(newRecord);
-  } catch (error) {
-    next( error.message || error);
+  } else {
+    try {
+      let obj = req.body;
+      let newRecord = await req.model.create(obj);
+      res.status(201).json(newRecord);
+    } catch (error) {
+      next(error.message || error);
+    }
   }
 }
 
-async function handleGetAll(req, res) {
-
-  console.log('req.user.dataValues>>>', req.user.dataValues);
+async function handleGetAll(req, res, next) {
 
 
   let allRecords;
 
-  if (req.params.model === 'reservation' && req.user.dataValues.role === 'parkGuest'){
+  if (req.params.model === 'reservation' && req.user.dataValues.role === 'parkGuest') {
     let id = req.user.dataValues.id;
 
     try {
       allRecords = await reservation.findAll({
-        where: {userId: id},
-        include: [
-          {model: rides, as: 'ride', attributes: ['name']},
-        ],
-      });
+        where: { userId: id },
 
+        include: {
+          model: dataModules.ride.model,
+          as: 'ride',
+          attributes: ['name', 'waitTimes'],
+        },
+      });
     } catch (error) {
-      res.status(500).json({ error: 'Internal server error' });
+      console.error(error);
     }
-  } else if (req.params.model === 'reservation' && req.user.dataValues.role!== 'parkGuest' ) {
+  };
+
+  if (req.params.model === 'reservation' && req.user.dataValues.role !== 'parkGuest') {
     try {
       allRecords = await reservation.findAll({
         include: [
-          {model: users, as: 'user', attributes: ['username']},
-          {model: rides, as: 'ride', attributes: ['name']},
+          {
+            model: dataModules.users,
+            as: 'user',
+            attributes: ['username']
+          },
+          {
+            model: dataModules.ride.model,
+            as: 'ride',
+            attributes: ['name', 'waitTimes']
+          },
         ],
       });
 
     } catch (error) {
-      res.status(500).json({ error: 'Internal server error' });
+      console.error(error);
     }
-  } else {
+  };
+
+  if (req.params.model !== 'reservation') {
     allRecords = await req.model.get();
-  }
+  };
 
   res.status(200).json(allRecords);
 }
+
+
 
 async function handleGetOne(req, res, next) {
   try {
@@ -91,8 +125,8 @@ async function handleUpdate(req, res) {
 
   let updatedRecord;
 
-  if (req.params.model === 'reservation'){
-    let record = await reservation.findOne({where: {id: id}});
+  if (req.params.model === 'reservation') {
+    let record = await dataModules.reservation.findOne({ where: { id: id } });
     updatedRecord = await record.update(obj);
   } else {
     updatedRecord = await req.model.update(id, obj);
@@ -102,19 +136,18 @@ async function handleUpdate(req, res) {
 }
 
 async function handleDelete(req, res) {
-  console.log(req.params);
   let id = req.params.id;
 
-  if (req.params.model === 'reservation'){
-    await reservation.destroy({where: {id: id}});
-    let updatedRecords =  await reservation.findAll({
+  if (req.params.model === 'reservation') {
+    await reservation.destroy({ where: { id: id } });
+    let updatedRecords = await dataModules.reservation.findAll({
       include: [
-        {model: users, as: 'user', attributes: ['username']},
-        {model: rides, as: 'ride', attributes: ['name']},
+        { model: dataModules.users, as: 'user', attributes: ['username'] },
+        { model: dataModules.ride.model, as: 'ride', attributes: ['name'] },
       ],
     });
     res.status(200).json(updatedRecords);
-  } else{
+  } else {
     await req.model.delete(id);
     let updatedRecords = await req.model.get();
     res.status(200).json(updatedRecords);

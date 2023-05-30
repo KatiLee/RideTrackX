@@ -13,17 +13,15 @@ const rides = rideModel(sequelize, DataTypes);
 const reservation = reservationModel(sequelize, DataTypes);
 const users = userModel(sequelize, DataTypes);
 
-users.belongsToMany(rides, {through: reservation});
-rides.belongsToMany(users, {through: reservation});
+users.belongsToMany(rides, { through: reservation });
+rides.belongsToMany(users, { through: reservation });
 
-reservation.belongsTo(users, { foreignKey: 'userId', as: 'user' ,attributes: ['username'] });
-reservation.belongsTo(rides, { foreignKey: 'rideId', as: 'ride', attributes: ['name'] });
+reservation.belongsTo(users, { foreignKey: 'userId', as: 'user', attributes: ['username'] });
+reservation.belongsTo(rides, { foreignKey: 'rideId', as: 'ride', attributes: ['name', 'waitTimes'] });
 
 module.exports = {
   db: sequelize,
   ride: new Collection(rides),
-  reservations: new Collection(reservation),
   reservation,
-  rides,
   users,
 };
